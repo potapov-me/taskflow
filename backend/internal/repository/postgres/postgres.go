@@ -1,19 +1,34 @@
 package postgres
 
 import (
-	"context"
 	"fmt"
-	"github.com/jackc/pgx/v5/pgxpool"
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 )
 
 type Repository struct {
-	Pool *pgxpool.Pool
+	DB *gorm.DB
 }
 
-func New(ctx context.Context, connString string) (*Repository, error) {
-	pool, err := pgxpool.New(ctx, connString)
+func New(dsn string) (*Repository, error) {
+	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
+		Logger: logger.Default.LogMode(logger.Info),
+	})
 	if err != nil {
-		return nil, fmt.Errorf("failed to create pool: %w", err)
+		return nil, fmt.Errorf("failed to connect database: %w", err)
 	}
-	return &Repository{Pool: pool}, nil
+	return &Repository{DB: db}, nil
+}
+
+func (r *Repository) AutoMigrate(models ...interface{}) error {
+	return r.DB.AutoMigrate(models...)
+}
+
+func (r *Repository) Close() error {
+	sqlDB, err := r.DB.DB()
+	if err != nil {
+		return err
+	}
+	return sqlDB.Close()
 }

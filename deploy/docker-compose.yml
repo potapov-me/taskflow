@@ -1,0 +1,17 @@
+version: "3.9"
+services:
+  backend:
+    build:
+      context: ../backend
+      dockerfile: ../deploy/backend.Dockerfile
+    environment:
+      DB_DSN: "postgres://taskflow:taskflow@db:5432/taskflow?sslmode=disable"
+      JWT_SECRET: "secret"
+    ports:
+      - "8080:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+#    command: "/app/migrate -path /app/migrations -database "$$DB_DSN" "
+
+  # Остальные сервисы (db, minio) без изменений

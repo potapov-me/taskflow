@@ -1,64 +1,60 @@
 package main
 
 import (
-	"context"
 	"github.com/gin-gonic/gin"
 	"log"
-	"net/http"
 	"os"
-	"os/signal"
+	"potapov.me/taskflow/internal/domain/project"
+	"potapov.me/taskflow/internal/domain/task"
+	"potapov.me/taskflow/internal/domain/user"
 	"potapov.me/taskflow/internal/http/router"
 	"potapov.me/taskflow/internal/repository/postgres"
-	"syscall"
-	"time"
 
 	"github.com/joho/godotenv"
+	"gorm.io/gorm"
 )
 
 func main() {
-	// Загрузка .env
 	_ = godotenv.Load()
 
-	// Подключение к БД
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-
-	repo, err := postgres.New(ctx, os.Getenv("DB_DSN"))
+	repo, err := postgres.New(os.Getenv("DB_DSN"))
 	if err != nil {
 		log.Fatalf("Database connection failed: %v", err)
 	}
-	defer repo.Pool.Close()
+	defer repo.Close()
 
-	// Настройка роутера
+	// Автомиграция
+	if err := repo.AutoMigrate(
+		&user.User{},
+		&project.Project{},
+		&task.Task{},
+	); err != nil {
+		log.Fatalf("Auto migration failed: %v", err)
+	}
+
+	// Создаем тестового пользователя для разработки
+	if os.Getenv("APP_ENV") == "dev" {
+		createTestUser(repo.DB)
+	}
+
 	r := router.SetupRouter()
 
-	// Middleware для передачи репозитория
 	r.Use(func(c *gin.Context) {
 		c.Set("repo", repo)
 		c.Next()
 	})
 
-	// Graceful shutdown
-	srv := &http.Server{
-		Addr:    ":" + os.Getenv("APP_PORT"),
-		Handler: r,
+	// ... остальной код (graceful shutdown)
+}
+
+func createTestUser(db *gorm.DB) {
+	testUser := &user.User{
+		Email:        "test@taskflow.dev",
+		Name:         "Test User",
+		PasswordHash: "hashed_password", // В реальном приложении используйте bcrypt
 	}
 
-	go func() {
-		if err := srv.ListenAndServe(); err != nil {
-			log.Printf("Server stopped: %v", err)
-		}
-	}()
-
-	quit := make(chan os.Signal, 1)
-	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
-	<-quit
-
-	ctx, shutdownCancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer shutdownCancel()
-
-	if err := srv.Shutdown(ctx); err != nil {
-		log.Fatalf("Forced shutdown: %v", err)
+	if err := db.FirstOrCreate(testUser, "email = ?", testUser.Email).Error; err != nil {
+		log.Printf("Failed to create test user: %v", err)
 	}
-	log.Println("Server exited")
 }

@@ -9,24 +9,32 @@ import (
 )
 
 func CreateProject(c *gin.Context) {
-	var p project.Project
-	if err := c.ShouldBindJSON(&p); err != nil {
+	var input struct {
+		Title       string `json:"title" binding:"required"`
+		Description string `json:"description"`
+	}
+
+	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	// Генерация ID
-	p.ID = uuid.New()
+	// Получаем userID из контекста (будет добавлено в middleware аутентификации)
+	userID, _ := c.Get("userID")
 
-	// Получение репозитория из контекста (добавляется в middleware)
+	project := &project.Project{
+		Title:       input.Title,
+		Description: input.Description,
+		OwnerID:     userID.(uuid.UUID),
+	}
+
 	repo := c.MustGet("repo").(*postgres.Repository)
-
-	if err := repo.CreateProject(c.Request.Context(), &p); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "database error"})
+	if err := repo.CreateProject(c.Request.Context(), project); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create project"})
 		return
 	}
 
-	c.JSON(http.StatusCreated, p)
+	c.JSON(http.StatusCreated, project)
 }
 
 // Добавьте остальные обработчики...
