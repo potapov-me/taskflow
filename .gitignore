@@ -1,0 +1,77 @@
+### Общие системные файлы ###
+.DS_Store
+*.swp
+*.swo
+Thumbs.db
+
+### Логи и дампы ###
+*.log
+*.dump
+*.pid
+*.seed
+
+### Файлы редакторов ###
+.idea/
+.vscode/
+*.code-workspace
+
+### Go ###
+# Бинарники
+/bin/
+/main
+
+# Тестовые ковертаги
+*.out
+coverage.txt
+
+# Модули Go (можно включить через go mod vendor)
+/go/pkg/
+/go/bin/
+
+# Автогенерируемые файлы
+__debug_bin
+
+### Vue.js ###
+# Зависимости
+/node_modules/
+/.pnpm-store/
+
+# Артефакты сборки
+/dist/
+/.output/
+/ssr-cache/
+
+# Кэш
+/.nuxt/
+/.cache/
+/.vite/
+*.tgz
+
+# Тесты
+/coverage/
+/.nyc_output/
+
+### Конфигурации среды ###
+.env
+.env.*
+!.env.example
+secrets.yml
+config.local.*
+
+### MinIO/локальное хранилище ###
+/storage-data/
+/minio-data/
+
+### Docker ###
+docker-compose.override.yml
+/docker-data/
+
+### JetBrains IDE ###
+**/.idea/*
+!.idea/runConfigurations/
+!.idea/codeStyles/
+
+### Visual Studio Code ###
+!.vscode/settings.json
+!.vscode/extensions.json
+!.vscode/launch.json
